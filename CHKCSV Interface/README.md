@@ -3,4 +3,5 @@ This Python script creates an interface for the CHKCSV package (R. Dreas Nielsen
 
 ## Compilation
 Using the Command Prompt and the PyInstaller library, compile main.py using:
-python -m PyInstaller chkcsvV6.py --onefile --windowed
+
+!python -m PyInstaller chkcsvV6.py --onefile --windowed
