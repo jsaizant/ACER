@@ -95,6 +95,9 @@ def main(folder_path=FOLDER_PATH, stakeholders_list=STAKEHOLDERS_LIST, excel_exp
     df_tcm = create_table_of_tcms(folder_path)
 
     df_requirement = create_table_of_requirement(folder_path, df_tcm, stakeholders_list)
+
+    df_requirement = remove_equation_symbols(df_requirement)
+
     print(df_requirement)
     if excel_export:
 
@@ -458,37 +461,29 @@ def remove_contents_and_whereas_2nd_try(text):
 
     return j - 1
 
-def remove_equation_symbols(text_w_equ):
+def remove_equation_symbols(df):
     """
 
     Args:
-        text:
+        Cataloque of requirement dataframe
 
     Returns:
-        Equation symbols are replaced with '[Equation: refer to original TCM]'
+        Cataloque of requirement dataframe with modified "Text" column with removed equations
     """
 
     # Define the pattern to match sequences of mathematical symbols
-    mathematical_symbols_pattern = "([\x00-\x7F[^.,:;!?'%]]{2,})|(\(cid:\d+\))"
+    mathematical_symbols_pattern = r"([^\x00-\x7F]+)+|(\(cid:\d+\))"
+    # "([\x00-\x7F[^.,:;!?'%]]{2,})|(\(cid:\d+\))"
     # "[^\x00-\x7F]+"
     # r"([^\x00-\x7F&&[^'%]]{2,})"
 
-    # text_wo_equ = []
-    # # Replace all occurrences of the pattern
-    # for t in text_w_equ:
-    #     # Find all occurrences of the pattern in the input string
-    #     matches = re.findall(mathematical_symbols_pattern, t)
-    #     if matches != []:
-    #         # Replace each occurrence of the pattern with the desired string
-    #         for symbol in matches:
-    #             t = t.replace(symbol, '[equation: refer to original TCM]')
-    #             text_wo_equ.append(t)
-    #     else:
-    #         text_wo_equ.append(t)
+    # Define the substitution string
+    substitution = '[equation: refer to original TCM]'
 
-    text_wo_equ = [re.sub(mathematical_symbols_pattern, '[equation: refer to original TCM]', t) for t in text_w_equ]
+    # Apply the re.sub function to every cell in the 'text' column of the DataFrame
+    df['Text'] = df['Text'].apply(lambda x: re.sub(mathematical_characters_pattern, substitution, x))
 
-    return text_wo_equ
+    return df
 
 
 def detect_article(text, line, i, articles_nb):
@@ -1273,8 +1268,7 @@ def create_table_of_requirement(path_pdf, table_of_tcm, stakeholders_list):
                     if requirements[i] != "":
                         if frequencies[i] == "":
                             frequencies[i] = "One-off"
-                
-                #text = remove_equation_symbols(text)
+    
 
                 df_temp = pd.DataFrame(
                     data={
