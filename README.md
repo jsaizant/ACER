@@ -1,2 +1,2 @@
 # ACER
-All code projects that I developed during my traineeship in ACER.
+All the code projects I developed during my internship at ACER as a data analyst.
