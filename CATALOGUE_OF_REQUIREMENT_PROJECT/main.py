@@ -867,7 +867,7 @@ def identify_geographic_scope(file_pdf):
         To identify the geographic perimeter of the TCM
     """
 
-    geo_scope = "EU-wide"  # By default
+    geo_scope = "EU-WIDE"  # By default
 
     countries = [
         "AT",
@@ -903,82 +903,68 @@ def identify_geographic_scope(file_pdf):
         "UK",
     ]
 
-    regions = [
-        "Baltic",
-        "BALTIC",
-        "Channel",
-        "CHANNEL",
-        "Core",
-        "CORE",
-        "GRIT",
-        "Hansa",
-        "HANSA",
-        "Italy North",
-        "ITALY NORTH",
-        "ITNorth",
-        "IT North",
-        "IT NORTH",
-        "ITNORTH",
-        "IU",
-        "Nordic",
-        "NORDIC",
-        "SEE",
-        "SWE",
-        "South East Europe",
-        "South West Europe",
-        "South east europe",
-        "South west europe",
-        "SOUTH EAST EUROPE",
-        "SOUTH WEST EUROPE",
-        "UI",
-        "UCTE",
-        "Ireland",
-        "IRELAND",
-        "IE",
-        "BritNed",
-        "BRITNED",
-        "Britned",
-        "IFA Interconnector"
-    ]
+    regions = {
+    # Regions until version 1.3
+    "Baltic": "BALTIC",
+    "Channel": "CHANNEL",
+    "Core": "CORE",
+    "GRIT": "GRIT",
+    "Hansa": "HANSA",
+    "Italy North": "IT NORTH",
+    "ITNorth": "IT NORTH",
+    "IT North": "IT NORTH",
+    "IU": "UI",
+    "Nordic": "NORDIC",
+    "SEE": "SEE",
+    "South East Europe": "SEE",
+    "South east europe": "SEE",
+    "SWE": "SWE",
+    "South West Europe": "SWE",
+    "South west europe": "SWE",
+    "UI": "UI",
+    "UCTE": "UCTE",
+    "Ireland": "IE",
+    "IE": "IE",
+    "BritNed": "BRITNED",
+    "Britned": "BRITNED",
+    "IFA Interconnector": "IFA INTERCONNECTOR",
+    # Regions from version 1.3 onwards
+    "SA CE": "SA CE",
+    "SA Nordic": "SA Nordic",
+    "SA GB": "SA GB",
+    "SA IE/NI": "SA IE/NI",
+    "SA Baltic": "SA Baltic",
+    "LFC AREA SHB": "LFC Area SHB",
+    "LFC Area – TNG+TTG+AMP+50HZT+EN+CREOS": "LFC Area – TNG+TTG+AMP+50HZT+EN+CREOS",
+    "LFC Area Nordic": "LFC Area Nordic",
+    "FCR Cooperation NRAs": "FCR Cooperation NRAs",
+    "RR NRAs": "RR NRAs",
+    "Nordic SOR": "Nordic SOR",
+    "CE SOR": "CE SOR",
+    "Baltic SOR": "Baltic SOR",
+    "SEE SOR": "SEE SOR",
+    }
 
-    for region in regions:
-        if region in file_pdf:
-            geo_scope = region
+    for region in regions.keys():
+        if region in file_pdf or region.upper() in file_pdf or region.replace(" ", "") in file_pdf or region.upper().replace(" ", "") in file_pdf:
+            geo_scope = regions[region]
+            # No break statement so it loops over every region
 
     # In case of bilateral TCM
+    # This case is ignored, the default parameter is preferred because pairs of country tags are not recognized by the MONOCLE application
 
-    for country_A in countries:
-        for country_B in countries:
-            if country_A + "-" + country_B in file_pdf:
-                geo_scope = country_A + "-" + country_B
+    # for country_A in countries:
+    #     for country_B in countries:
+    #         if country_A + "-" + country_B in file_pdf:
+    #             geo_scope = country_A + "-" + country_B
+    #             break
 
-    # To harmonize all possible spellings
+    # Exception: If file is TSO settlement, "IE" is not Ireland, instead use default geo-perimeter
 
-    if (
-            geo_scope == "Italy North"
-            or geo_scope == "ITALY NORTH"
-            or geo_scope == "ITNorth"
-            or geo_scope == "IT NORTH"
-            or geo_scope == "ITNORTH"
-    ):
-        geo_scope = "IT North"
+    if "TSO settlement" in file_pdf:
+        geo_scope = "EU-WIDE"
 
-    if geo_scope == "GR-IT":
-        geo_scope = "GRIT"
-
-    if geo_scope == "IU":
-        geo_scope = "UI"
-
-    if geo_scope.upper() == "SOUTH EAST EUROPE":
-        geo_scope = "SEE"
-
-    if geo_scope.upper() == "SOUTH WEST EUROPE":
-        geo_scope = "SWE"
-
-    if geo_scope.upper() == "IRELAND":
-        geo_scope = "IE"
-
-    return geo_scope.upper()
+    return geo_scope
 
 
 def identify_requirements(text, articles_nb, stakeholders_list):
@@ -1088,7 +1074,8 @@ def identify_decision_date(file_pdf):
 
 def create_table_of_tcms(path_pdf, add_only_one_file=False):
 
-    ccrs = [
+    # CCR indicators are no longer used to filter out files from analysis
+    ccrs = [ 
         "BALTIC",
         "CORE",
         "GRIT",
@@ -1168,7 +1155,7 @@ def create_table_of_tcms(path_pdf, add_only_one_file=False):
     return df
 
 
-def create_table_of_requirement(path_pdf, table_of_tcm, stakeholders_list):
+def create_table_of_requirement(path_pdf, table_of_tcm, stakeholders_list):    
 
     df = pd.DataFrame()
 
