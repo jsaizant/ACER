@@ -4,7 +4,7 @@ TCMs in a structured way in order to create a catalogue of requirement.
 
 For more information see the README.txt file.
 
-Version: v1.6 (03/02/2023)
+Version: v1.7 (09/02/2023)
 Author: Tom Gagnebet (tom.gagnebet@acer.europa.eu, tom.gagnebet@student-cs.fr)
 Coauthor: Kristy Louise Rhades (kristylou.rhades@gmail.com)
 Maintainer: Jose Javier Saiz (josejavier.saizanton@acer.europa.eu, josejavier.saiz.anton@gmail.com)
