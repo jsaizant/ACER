@@ -1,9 +1,8 @@
 """
-This Python script creates an interface for the CHKCSV package to check CSV files according to the parameters in a separate FMT file.
+This Python script creates an interface for the CHKCSV package (R. Dreas Nielsen) to check CSV files according to the parameters in a separate FMT file.
 
 For more information see the README.txt file.
 
-Version: v6 (//2023)
 Author: Jose Javier Saiz (josejavier.saizanton@acer.europa.eu, josejavier.saiz.anton@gmail.com)
 """
 
