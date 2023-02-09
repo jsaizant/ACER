@@ -96,17 +96,17 @@ The technical interconnection between the catalogue of requirement and MONOCLE a
 
 2. Transforming the raw data output from the EXTRACTION EXERCISE for upload in MONOCLE
 The extraction automatically generates two excel workbooks, catalogue_of_tcms_auto.xlxs and catalogue_of_requirement_auto.xlxs. 
-•	Merge the workbooks into one by creating one table for each workbook.
-•	Delete the first three letters from the column TCM_name under table_of_tcm (for example, by using the formula =RIGHT(cell to delete letters from, LEN(cell to delete letters from)-3)) in a new column TCM_name_actual. The first three letters are a side-product of the extraction exercise and are of no further relevance in the monitoring process. Some cells might only depict two letters (one number and one space). For those, add one letter manually, so that the chosen formula can delete the right number of characters.
+•   Merge the workbooks into one by creating one table for each workbook.
+•   Delete the first three letters from the column TCM_name under table_of_tcm (for example, by using the formula =RIGHT(cell to delete letters from, LEN(cell to delete letters from)-3)) in a new column TCM_name_actual. The first three letters are a side-product of the extraction exercise and are of no further relevance in the monitoring process. Some cells might only depict two letters (one number and one space). For those, add one letter manually, so that the chosen formula can delete the right number of characters.
 After completion of the above steps, the values Regulation in the Regulation_name column under table_of_tcm needs to be switched with values SO, EB, FCA, ELE, CACM in TCM_name column respectively. In TCM_name column any two number should be added before Regulation (for the RIGHT formula to be correctly executed). 
 
 Filtering requirements by regulation, TCM or geographic parameter is an essential part in the daily operation of the application by the users. In the current version of the MONOCLE test application, a merge between the columns Regulation_name, TCM_name_actual and Geographic_parameter is required to create the new column Full_name, which is used as the basis for parts of the filter options.
-•	Use the CONCATENATE formula to create Full_name out of Regulation_name, TCM_name_actual and Geographic_parameter (in that order) in the table_of_tcm table. Make sure to arrange the column in the same structure as all previous catalogue_of_tcms (see previous versions in the ARCHIVE).
+•   Use the CONCATENATE formula to create Full_name out of Regulation_name, TCM_name_actual and Geographic_parameter (in that order) in the table_of_tcm table. Make sure to arrange the column in the same structure as all previous catalogue_of_tcms (see previous versions in the ARCHIVE).
 It needs to be discussed with the external IT developer whether the concatenation of the three mentioned columns is actually needed or should better be made redundant. 
 As a by-product of extraction exercise, such values as “article number”, “article name”, “title number and name” are also extracted under table_of_requirment. All textual values in “Paragraph_nb” column need to be manually filtered and deleted. Solely filtering will not be effective, as the file loader reads hidden values. 
 
 In the next step, the TCM_full_name needs to be transferred into the catalogue_of_requirement table. To do so, a new column also called TCM_full_name, and inserted after TCM_id using the VLOOKUP formula is required. The TCM_id functions as common denominator:
-•	=VLOOKUP(B2,'table_of_tcm '!A:I,  9, 0)
+•   =VLOOKUP(B2,'table_of_tcm '!A:I,  9, 0)
 
 3. Implementation of the Catalogue of Requirement in MONOCLE
 Once the Catalogue of Requirement has been prepared, the MONOCLE tool should allow for an upload function operated by ACER users. Given the possibility of errors in the data tables, the uploaded requirements should be made editable. The details about the development of the application for notifications and monitoring be found in Annex I of the Terms of Reference.
