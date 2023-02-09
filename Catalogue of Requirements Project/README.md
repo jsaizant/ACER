@@ -3,8 +3,11 @@
 Version: 16/12/2022
 Authors: 	
 Tom Gagnebet (tom.gagnebet@student-cs.fr)
+
 Kristy Louise Rhades (kristylou.rhades@gmail.com)
+
 Jose Javier Saiz (josejavier.saiz.anton@gmail.com)
+
 Mariia Melnychenko (mamelnychenkoo@gmail.com)
 
 ### 1.	Prerequisite:
