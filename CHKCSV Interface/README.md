@@ -1,4 +1,4 @@
-### CHKCSV Interface
+# CHKCSV Interface
 This Python script creates an interface for the CHKCSV package (R. Dreas Nielsen) to check CSV files according to the parameters in a separate FMT file.
 
 ## Compilation
