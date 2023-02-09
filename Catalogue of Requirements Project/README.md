@@ -1,7 +1,9 @@
 # CATALOGUE OF REQUIREMENTS PROJECT
 
 Version: 16/12/2022
+
 Authors: 	
+
 Tom Gagnebet (tom.gagnebet@student-cs.fr)
 
 Kristy Louise Rhades (kristylou.rhades@gmail.com)
@@ -29,10 +31,11 @@ The main goal is to exhaustively list every paragraph of all articles of every T
 
 ### 3.	Method:
 The Python script uses the 'pdfplumber' library (https://github.com/jsvine/pdfplumber) to extract paragraphs from regulation PDF documents (GLs and TCMs) to create a catalogue of requirements.
+
 This identifies three distinct tasks (listed in order of importance):
 1)	To determine the structure of the regulation documents (number of articles, number of paragraphs, etc.);
-2)	To display the content of the paragraphs identified (text, equation, table etc.);
-3)	To pre-identify if a paragraph contains a legally binding requirement.
+3)	To display the content of the paragraphs identified (text, equation, table etc.);
+4)	To pre-identify if a paragraph contains a legally binding requirement.
 
 #### Task 1:
 Task 1 is addressed in the first six columns of the table_of_requirement:
@@ -65,51 +68,53 @@ Task 3 is addressed in the last four columns of the table_of_requirement:
 
 NOTE: Task 3 is a first naive scanning method based on the identification of the word “shall” and linked with a specific stakeholder name that we previously identified as a potential obliged stakeholder. However, this first naive method should be taken simply as an indication (heuristic) and should always be double-checked by policy officers to determine whether the identified imperative is relevant or not.
 
-### 1.	Where to find regulations:
+### 4.	Where to find regulations:
 Given the right FOLDER_PATH (\\s-int2019-sp\sites\public\Shared Documents\Electricity\Market Codes\Market Codes WEB) input pointing the “Market Codes WEB" folder, the algorithm is going to look for documents only in the “Approved” folder of each TCM folders of each "FCA", "CACM", "EB", "Regulation", “ELE”, “SO” folders. 
 
-### 2.	Exceptions:
+### 5.	Exceptions:
 Each file is labelled with a Boolean variable under the "Ignore_status" column in the Table of TCMs, which is used to determine whether the file will be analysed for the Table of Requirements or not. Initially, up to version 1.3 of the script, the following regulation documents were excluded from the analysis, which ruled out 41 out of 137 documents:
 - Regulation documents that cover non-relevant geographical perimeters (former CCR, bilateral, etc.). Relevant geographic regions are:
-    ccrs = [
-        "BALTIC",
-        "CORE",
-        "GRIT",
-        "HANSA",
-        "IT NORTH",
-        "NORDIC",
-        "SEE",
-        "SWE",
-        "UCTE",
-        "EU-WIDE"
-    ]
+    -   "BALTIC",
+    -   "CORE",
+    -   "GRIT",
+    -   "HANSA",
+    -   "IT NORTH",
+    -   "NORDIC",
+    -   "SEE",
+    -   "SWE",
+    -   "UCTE",
+    -   "EU-WIDE"
 - Annexes.
 - Regulation documents that correspond to TSO settlements.
 - Amendment proposals without a new fully drafted version of the TCM.
 - Scanned documents, which are unfit for text extraction:
-•   Action 5c - IDCZGT ACER decision Annex I.pdf
-•   Action 9 - CCM CORE ACER Decision Annex I (DA).pdf
-•   Action 4 - HAR annex SEE ACER Decision 06-2017 Annex I.pdf
+    -   Action 5c - IDCZGT ACER decision Annex I.pdf
+    -   Action 9 - CCM CORE ACER Decision Annex I (DA).pdf
+    -   Action 4 - HAR annex SEE ACER Decision 06-2017 Annex I.pdf
 
 ## IMPLEMENTATION INTO MONOCLE
 
 ### 1.	Usage of the Catalogue of Requirement and implementation into the MONOCLE application
 As long as Task 1 is complete, the catalogue of requirement will list all the articles and paragraphs of the regulations. Importing this list into the MONOCLE application will allow ACER policy officers to monitor exhaustively the implementation of market codes. Tasks 2 and 3 of the EXTRACTION EXERCISE provide additional indicative information that is not actually required.
+
 The technical interconnection between the catalogue of requirement and MONOCLE application should be chosen under guidance of the external IT developer. In the event of changes in the structure of table_of_tcm or table_of_requirement, it is most important to guarantee compatibility between the data set (catalogue of requirement) and application. At all times, it needs to be ensured that the excel workbook tables are in the right order.
 
 ### 2.	Transforming the raw data output from the EXTRACTION EXERCISE for upload in MONOCLE
 The extraction automatically generates two excel workbooks, catalogue_of_tcms_auto.xlxs and catalogue_of_requirement_auto.xlxs. 
-•   Merge the workbooks into one by creating one table for each workbook.
-•   Delete the first three letters from the column TCM_name under table_of_tcm (for example, by using the formula =RIGHT(cell to delete letters from, LEN(cell to delete letters from)-3)) in a new column TCM_name_actual. The first three letters are a side-product of the extraction exercise and are of no further relevance in the monitoring process. Some cells might only depict two letters (one number and one space). For those, add one letter manually, so that the chosen formula can delete the right number of characters.
+- Merge the workbooks into one by creating one table for each workbook.
+- Delete the first three letters from the column TCM_name under table_of_tcm (for example, by using the formula =RIGHT(cell to delete letters from, LEN(cell to delete letters from)-3)) in a new column TCM_name_actual. The first three letters are a side-product of the extraction exercise and are of no further relevance in the monitoring process. Some cells might only depict two letters (one number and one space). For those, add one letter manually, so that the chosen formula can delete the right number of characters.
+
 After completion of the above steps, the values Regulation in the Regulation_name column under table_of_tcm needs to be switched with values SO, EB, FCA, ELE, CACM in TCM_name column respectively. In TCM_name column any two number should be added before Regulation (for the RIGHT formula to be correctly executed). 
 
 Filtering requirements by regulation, TCM or geographic parameter is an essential part in the daily operation of the application by the users. In the current version of the MONOCLE test application, a merge between the columns Regulation_name, TCM_name_actual and Geographic_parameter is required to create the new column Full_name, which is used as the basis for parts of the filter options.
-•   Use the CONCATENATE formula to create Full_name out of Regulation_name, TCM_name_actual and Geographic_parameter (in that order) in the table_of_tcm table. Make sure to arrange the column in the same structure as all previous catalogue_of_tcms (see previous versions in the ARCHIVE).
+- Use the CONCATENATE formula to create Full_name out of Regulation_name, TCM_name_actual and Geographic_parameter (in that order) in the table_of_tcm table. Make sure to arrange the column in the same structure as all previous catalogue_of_tcms (see previous versions in the ARCHIVE).
+
 It needs to be discussed with the external IT developer whether the concatenation of the three mentioned columns is actually needed or should better be made redundant. 
+
 As a by-product of extraction exercise, such values as “article number”, “article name”, “title number and name” are also extracted under table_of_requirment. All textual values in “Paragraph_nb” column need to be manually filtered and deleted. Solely filtering will not be effective, as the file loader reads hidden values. 
 
 In the next step, the TCM_full_name needs to be transferred into the catalogue_of_requirement table. To do so, a new column also called TCM_full_name, and inserted after TCM_id using the VLOOKUP formula is required. The TCM_id functions as common denominator:
-•   =VLOOKUP(B2,'table_of_tcm '!A:I,  9, 0)
+- =VLOOKUP(B2,'table_of_tcm '!A:I,  9, 0)
 
 ### 3.	Implementation of the Catalogue of Requirement in MONOCLE
 Once the Catalogue of Requirement has been prepared, the MONOCLE tool should allow for an upload function operated by ACER users. Given the possibility of errors in the data tables, the uploaded requirements should be made editable. The details about the development of the application for notifications and monitoring be found in Annex I of the Terms of Reference.
