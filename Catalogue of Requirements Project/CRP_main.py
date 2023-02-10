@@ -472,7 +472,7 @@ def remove_equation_symbols(df):
     """
 
     # Define the pattern to match sequences of mathematical symbols
-    mathematical_symbols_pattern = r"([^\x00-\x7F]+)+|(\(cid:\d+\))"
+    symbols_pattern = r"([^\x00-\x7F]+)+|(\(cid:\d+\))"
     # "([\x00-\x7F[^.,:;!?'%]]{2,})|(\(cid:\d+\))"
     # "[^\x00-\x7F]+"
     # r"([^\x00-\x7F&&[^'%]]{2,})"
@@ -481,7 +481,7 @@ def remove_equation_symbols(df):
     substitution = '[equation: refer to original TCM]'
 
     # Apply the re.sub function to every cell in the 'text' column of the DataFrame
-    df['Text'] = df['Text'].apply(lambda x: re.sub(mathematical_characters_pattern, substitution, x))
+    df['Text'] = df['Text'].apply(lambda x: re.sub(symbols_pattern, substitution, x))
 
     return df
 
