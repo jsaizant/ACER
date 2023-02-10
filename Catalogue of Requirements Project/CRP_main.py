@@ -96,6 +96,8 @@ def main(folder_path=FOLDER_PATH, stakeholders_list=STAKEHOLDERS_LIST, excel_exp
 
     df_requirement = create_table_of_requirement(folder_path, df_tcm, stakeholders_list)
 
+    df_requirement_fix = remove_equation_symbols(df_requirement)
+
     print(df_requirement)
     if excel_export:
 
@@ -103,7 +105,7 @@ def main(folder_path=FOLDER_PATH, stakeholders_list=STAKEHOLDERS_LIST, excel_exp
 
         df_requirement.to_excel(folder_path + "//" + "catalogue_of_requirement_auto.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
 
-        remove_equation_symbols(pd.read_excel(folder_path + "//" + "catalogue_of_requirement_auto.xlsx")).to_excel(folder_path + "//" + "catalogue_of_requirement_auto.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
+        df_requirement_fix.to_excel(folder_path + "//" + "catalogue_of_requirement_auto_fix.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
 
 
     return df_tcm, df_requirement
@@ -472,7 +474,7 @@ def remove_equation_symbols(df):
     """
 
     # Define the pattern to match sequences of mathematical symbols
-    symbols_pattern = r"([^\x00-\x7F]+)+"
+    symbols_pattern = r"([^\x00-\x7F]+(\s{0,2})?){2,}"
     # "([\x00-\x7F[^.,:;!?'%]]{2,})|(\(cid:\d+\))"
     # "[^\x00-\x7F]+"
     # r"([^\x00-\x7F&&[^'%]]{2,})"
