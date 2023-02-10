@@ -961,7 +961,7 @@ def identify_geographic_scope(file_pdf):
 
     # Exception: If file is TSO settlement, "IE" is not Ireland, instead use default geo-perimeter
 
-    if "TSO settlement" in file_pdf:
+    if "TSO settlement" in file_pdf and "IE" in file_pdf:
         geo_scope = "EU-WIDE"
 
     return geo_scope
