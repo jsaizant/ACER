@@ -1,0 +1,11 @@
+### How to execute script
+
+1. Open CMD console.
+
+2. Paste: python FULLSCRIPTROUTE
+
+### Results
+
+The script will generate 2 csv files in the following route:
+"\\s-int2019-sp\sites\public\Shared Documents\Electricity\Market Codes\Market Codes WEB\catalogue_of_tcms_auto.xlsx"
+"\\s-int2019-sp\sites\public\Shared Documents\Electricity\Market Codes\Market Codes WEB\catalogue_of_requirement_auto.xlsx"
