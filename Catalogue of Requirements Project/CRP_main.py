@@ -472,7 +472,7 @@ def remove_equation_symbols(df):
     """
 
     # Define the pattern to match sequences of mathematical symbols
-    symbols_pattern = r"([^\x00-\x7F]+)+|(\(cid:\d+\))"
+    symbols_pattern = r"([^\x00-\x7F]+)+"
     # "([\x00-\x7F[^.,:;!?'%]]{2,})|(\(cid:\d+\))"
     # "[^\x00-\x7F]+"
     # r"([^\x00-\x7F&&[^'%]]{2,})"
