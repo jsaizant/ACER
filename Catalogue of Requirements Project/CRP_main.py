@@ -738,7 +738,7 @@ def add_paragraph_and_article_reference(text, x_pos):
     try:
         paragraphs = unflag_subparagraph_as_paragraph(text, x_pos, articles_nb, paragraphs)
     except IndexError:
-        paragraphs = 
+        paragraphs = []
 
     return articles_nb, articles_name, paragraphs
 
@@ -784,7 +784,7 @@ def unflag_subparagraph_as_paragraph(text, x_pos, articles_nb, paragraphs):
             # To check if the current paragraph is more indented in comparison with the first paragraph of the article
             if index >= len(x_pos):
                 continue
-                
+
             if i < len(x_pos) and x_pos[i] > x_pos[index] + 10:
 
                 j = 0
