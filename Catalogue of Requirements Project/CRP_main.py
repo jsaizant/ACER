@@ -96,14 +96,14 @@ def main(folder_path=FOLDER_PATH, stakeholders_list=STAKEHOLDERS_LIST, excel_exp
 
     df_requirement = create_table_of_requirement(folder_path, df_tcm, stakeholders_list)
 
-    df_requirement = remove_equation_symbols(df_requirement)
-
     print(df_requirement)
     if excel_export:
 
         df_tcm.to_excel(folder_path + "//" + "catalogue_of_tcms_auto.xlsx", index=False)
 
         df_requirement.to_excel(folder_path + "//" + "catalogue_of_requirement_auto.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
+
+        remove_equation_symbols(pd.read_excel(folder_path + "//" + "catalogue_of_requirement_auto.xlsx")).to_excel(folder_path + "//" + "catalogue_of_requirement_auto.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
 
 
     return df_tcm, df_requirement
