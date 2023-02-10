@@ -72,7 +72,7 @@ NOTE: Task 3 is a first naive scanning method based on the identification of the
 Given the right FOLDER_PATH (\\s-int2019-sp\sites\public\Shared Documents\Electricity\Market Codes\Market Codes WEB) input pointing the “Market Codes WEB" folder, the algorithm is going to look for documents only in the “Approved” folder of each TCM folders of each "FCA", "CACM", "EB", "Regulation", “ELE”, “SO” folders. 
 
 ### 5.	Exceptions:
-Each file is labelled with a Boolean variable under the "Ignore_status" column in the Table of TCMs, which is used to determine whether the file will be analysed for the Table of Requirements or not. Initially, up to version 1.3 of the script, the following regulation documents were excluded from the analysis, which ruled out 41 out of 137 documents:
+Each file is marked with a Boolean variable under the "Ignore_status" column in the table of TCMs, which is used to determine whether or not the file is analysed for the table of requirements. Initially, until version 1.3 of the script, the following regulatory documents were excluded from the analysis, resulting in 41 out of 137 documents being excluded:
 - Regulation documents that cover non-relevant geographical perimeters (former CCR, bilateral, etc.). Relevant geographic regions are:
     -   "BALTIC",
     -   "CORE",
@@ -91,6 +91,8 @@ Each file is labelled with a Boolean variable under the "Ignore_status" column i
     -   Action 5c - IDCZGT ACER decision Annex I.pdf
     -   Action 9 - CCM CORE ACER Decision Annex I (DA).pdf
     -   Action 4 - HAR annex SEE ACER Decision 06-2017 Annex I.pdf
+    
+These exceptions were removed and all 141 regulatory documents are analysed in the Table of Requirements.
 
 ## IMPLEMENTATION INTO MONOCLE
 
