@@ -780,19 +780,20 @@ def unflag_subparagraph_as_paragraph(text, x_pos, articles_nb, paragraphs):
             index = max(index_1, index_2) + 1
 
             # To check if the current paragraph is more indented in comparison with the first paragraph of the article
-
-            if x_pos[i] > x_pos[index] + 10:
+            
+            if i < len(x_pos) and x_pos[i] > x_pos[index] + 10:
 
                 j = 0
 
                 # Replace all the subparagraph line references to the closest previous paragraph reference
 
                 while (
-                        x_pos[i + j] > x_pos[index] + 10
-                        and articles_nb[i + j] == articles_nb[i]
-                ):
+                    x_pos[i + j] > x_pos[index] + 10
+                    and articles_nb[i + j] == articles_nb[i]
+                    ):
                     paragraphs[i + j] = paragraphs[i - 1]
                     j += 1
+
                     if i + j >= len(text):
                         break
 
