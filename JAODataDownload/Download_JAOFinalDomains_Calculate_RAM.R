@@ -8,9 +8,9 @@ library(methods)
 library(xml2)
 
 # Data items to retrieve from JAO Utility Tool
-# Intraday ATC - Available in Publication (intradayAtc) and Utility Tool
-# Long Term Nominations - Available in Publication (ltn) and Utility Tool
-# ATC for non CWE borders - Only available in Utility Tool
+# Intraday ATC - Available in Publication (intradayAtc) and Utility Tool (GetAtcIntradayForAPeriod)
+# Long Term Nominations - Available in Publication (ltn) and Utility Tool (GetLTNForAPeriod)
+# ATC for non CWE borders - Only available in Utility Tool (GetAtcNonCWEForAPeriod)
 
 # Custom function to download the data from the JAO Utility Tool----------------
 #
