@@ -26,7 +26,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
     action = "character", # https://utilitytool.jao.eu/CascUtilityWebService.asmx
     dateFrom = "character",
     dateTo = "character",
-    path = "C:\\Users\\saizjo\\Downloads\\JAO\\"
+    path = "character"
   ),
   methods = list(
     http_request = function()
@@ -215,7 +215,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
   ))
 
 # Instantiate object
-jaoData <- JAOUtilTool(action = "GetAtcNonCWEForAPeriod", dateFrom = "2022-06-08 00:00", dateTo = "2022-06-10 00:00")
+jaoData <- JAOUtilTool(action = "GetAtcNonCWEForAPeriod", dateFrom = "2022-06-08 00:00", dateTo = "2022-06-10 00:00", path = "C:\\Users\\saizjo\\Downloads\\JAO\\")
 
 # Call method to download data
 jaoData$download_from_datestamps()
