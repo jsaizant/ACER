@@ -29,10 +29,29 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
     path = "character"
   ),
   methods = list(
-    http_request = function()
+    initialize = function(action = NULL, dateFrom = NULL, dateTo = NULL, path = NULL) {
+      if (!is.null(action)) {
+        .self$action <- action
+      }
+      if (!is.null(dateFrom)) {
+        .self$dateFrom <- dateFrom
+      }
+      if (!is.null(dateTo)) {
+        .self$dateTo <- dateTo
+      }
+      if (is.null(path)) {
+        .self$path <- getwd()
+      } else {
+        .self$path <- path
+      }
+      
+      validObject(.self)
+      .self
+    },
+    http_request = function(datetimeFrom, datetimeTo)
     {
       # Set URL for JAO Utility Tool 
-      url <- paste0("http://utilitytool.jao.eu/CascUtilityWebService.asmx/", action)
+      url <- paste0("http://utilitytool.jao.eu/CascUtilityWebService.asmx/", .self$action)
 
       # Set headers for HTTP request
       query <- list(
@@ -43,7 +62,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       response <- GET(url, query = query)
 
       # Get XML file from response
-      content <- content(response, as = "text")
+      content <- httr::content(response, as = "text")
 
       return(content)
     },
@@ -55,13 +74,13 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       host <- "s-el-mmw-db"
 
       # Connect to the MySQL database 
-      con <- dbConnect(
-        MySQL(),
+      con <- DBI::dbConnect(
+        RMySQL::MySQL(),
         user = username,
         password = password,
         host = host,
         dbname = "master")
-
+      
       # Define the query
       query <- "SELECT t1.datestamp as `date_from`,t2.datestamp as `date_to` 
                 FROM master.dimension_dates	t1 
@@ -69,65 +88,94 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
                 ON t1.datestamp=date_add(t2.datestamp, interval -1 day) 
                 WHERE t1.yearstamp=2022 
                 AND t1.datestamp<date(now());"
-
-      # Connect to database
-      rs <- dbSendQuery(con, query)
-
+      
       # Retrieve result from query
-      datestamps <- dbFetch(rs, n=-1)
-
+      datestamps <- RMySQL::dbGetQuery(con, query)
+      
+      # Close the database connection
+      RMySQL::dbDisconnect(con)
+      
       return(datestamps)
     },
-    save_csv = function()
+    save_csv = function(df, datetimeFrom = NULL)
     {
+      # Check if datetime are complete
+      if (is.null(datetimeFrom)) {
+        datetimeFrom <- as.POSIXct(.self$dateFrom, tz = "CET")
+      }
       # Create a filename for the csv file
-      filepath <- paste0(path, action, "\\", datestamps$date_from[i], ".csv")
+      filepath <- file.path(.self$path, paste0(.self$action, "-", datetimeFrom, ".csv"))
+      print(paste0("Saved in:", filepath))
       
       # Save the data to a csv file
-      write.csv(df_all, filepath, row.names = FALSE)
+      write.csv(df, filepath, row.names = FALSE)
     },
-    get_dataframe <- function()
-    {
+    get_dataframe = function(datetimeFrom = NULL, datetimeTo = NULL) {
+      
+      # Check if datetimes are complete
+      if (is.null(datetimeFrom)) {
+        datetimeFrom <- as.POSIXct(.self$dateFrom, tz = "CET")
+      }
+      if (is.null(datetimeTo)) {
+        datetimeTo <- as.POSIXct(.self$dateTo, tz = "CET")
+      }
+      
       # get content request
-      content <- http_request()
+      content <- .self$http_request(datetimeFrom, datetimeTo)
       
       # read in the XML file or string
-      xml <- read_xml(content)
-
+      xml <- xml2::read_xml(content)
+      
       # get the root node
-      root_node <- xml_root(xml)
-
+      root_node <- xml2::xml_root(xml)
+      
       # create an empty result data frame
-      df_all <- data.frame()
-
+      df <- data.frame()
+      
       # loop through the child elements of the root node
-      for (node in xml_children(root_node))
-      {
+      for (node in xml2::xml_children(root_node)) {
         # create a list to store the tags and values for this node
         node_data <- list()
         
-        for (element in xml_children(node)) {
+        for (element in xml2::xml_children(node)) {
           # get the tag of the child element
-          tag <- xml_name(element)
+          tag <- xml2::xml_name(element)
           # modify tag to represent border direction
           if (tag != "Hour" & tag != "Date") {
             n <- nchar(tag)
             tag <- paste(substr(tag, 1, 2), ">", substr(tag, 3, n), sep="")
           }
           # get the value of the child element
-          value <- xml_text(element)
+          value <- xml2::xml_text(element)
           
           # add the tag and value to the node_data list
           node_data[[tag]] <- value
         }
         
-        # convert the node_data list to a data frame and append it to the result data frame
+        # Change all columns to characters
+        #node_data <- apply(node_data,2,as.character)
+        
+        # convert the node_data list to a data frame
         df_node <- data.frame(t(node_data))
-        df_all <- rbind(df_all, df_node)
+        
+        # Append it to the result data frame
+        df <- rbind(df, df_node)
+
       }
-      # Convert date and hour columns to their respective data types
-      df_all$Date <- lubridate::ymd_hms(df$Date)
-      df_all$Hour <- as.integer(df$Hour)
+      
+      # Convert the Date column to POSIXct type using ymd_hms()
+      df$Date <- ymd_hms(df$Date)
+      
+      # Combine the Date and Hour columns into a new date_time column
+      df$date_time <- ymd_hms(paste0(format(df$Date, "%Y-%m-%d"), 
+                                     " ", sprintf("%02d", as.integer(df$Hour)), 
+                                     ":00:00", sep = ""))
+      
+      # remove the original Date and Hour columns
+      df$Date <- NULL
+      df$Hour <- NULL
+      
+      return(df)
     },
     download_from_datestamps = function()
     {
@@ -135,15 +183,14 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       # download and save dataframe for each day.
 
       # Get datestamps from database
-      datestamps <- get_db_datestamps()
+      datestamps <- .self$get_db_datestamps()
 
-      # Initialize an empty list to store the data
-      df_all <- c()
+      # Initialize an empty dataframe
+      df_all <- list()
 
       # Loop through each row of the datestamps dataframe
       for (i in nrow(datestamps):1) 
       {
-        
         # Create the start and end datetime strings for the period
         datetimeFrom <- paste0(datestamps$date_from[i]," 00:00")
         datetimeTo <- paste0(datestamps$date_to[i]," 00:00")
@@ -152,10 +199,10 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
         print(paste0("Executing period: ", datetimeFrom, " - ", datetimeTo))  
         
         # Get the data for a day
-        df <- get_dataframe()
+        df <- .self$get_dataframe(datetimeFrom, datetimeTo)
 
         # Save dataframe
-        save_csv()
+        .self$save_csv(df, datetimeFrom)
       }
 
     },
@@ -166,23 +213,22 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
 
       # Loop over input dates
       for (Date in seq(
-        from = as.POSIXct(dateFrom, tz = "CET"), 
-        to = as.POSIXct(dateTo, tz = "CET"), 
+        from = as.POSIXct(.self$dateFrom, tz = "CET"), 
+        to = as.POSIXct(.self$dateTo, tz = "CET"), 
         by = "day")) 
         {
-
           # Create the start and end datetime strings for the period
-          datetimeFrom = as.POSIXct(Date, "CET")
-          datetimeTo = as.POSIXct(Date, "CET") + hours(23)
+          datetimeFrom <- as.POSIXct(Date, "CET")
+          datetimeTo <- as.POSIXct(Date, "CET") + hours(23)
 
           # Print a message to show the current period being processed
           print(paste0("Executing period: ", datetimeFrom, " - ", datetimeTo))   
 
           # Get the data for a day
-          df <- get_dataframe()
+          df <- .self$get_dataframe(datetimeFrom, datetimeTo)
 
           # Save dataframe
-          save_csv()
+          .self$save_csv(df, datetimeFrom)
         }
     },
     download_one_day = function() 
@@ -191,22 +237,29 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       # download and save dataframe for one day.
 
       # Create the start and end datetime strings for the period
-      datetimeFrom = as.POSIXct(dateFrom, "CET")
-      datetimeTo = as.POSIXct(dateTo, "CET")
+      datetimeFrom <- as.POSIXct(.self$dateFrom, tz = "CET")
+      datetimeTo <- as.POSIXct(.self$dateTo, tz = "CET")
 
       # Get the data for a day
-      df <- get_dataframe()
+      df <- .self$get_dataframe(datetimeFrom, datetimeTo)
 
       # Save dataframe
-      save_csv()
+      .self$save_csv(df, datetimeFrom)
     },
-    calculate_average_RAM = function()
+    calculate_average_RAM = function(df)
     {
       # Group dataframe for one day into TSOs
       # and calculate average RAM.
-
+      
+      # Create the start and end datetime strings for the period
+      datetimeFrom <- as.POSIXct(dateFrom, "CET")
+      datetimeTo <- as.POSIXct(dateTo, "CET")
+      
+      # Get the data for a day
+      df <- .self$get_dataframe(datetimeFrom, datetimeTo)
+      
       # Group dataframe by TSO
-      df_RAMperTSO <- group_by(df_all, tso)
+      df_RAMperTSO <- group_by(df, tso)
       # Summarize
       df_RAMperTSO <- summarize(RAM = mean(ram / fmax, na.rm = TRUE))
 
@@ -214,11 +267,17 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
     }
   ))
 
+# Data items to retrieve from JAO Utility Tool
+# Intraday ATC - Available in Publication (intradayAtc) and Utility Tool (GetAtcIntradayForAPeriod)
+# Long Term Nominations - Available in Publication (ltn) and Utility Tool (GetLTNForAPeriod)
+# ATC for non CWE borders - Only available in Utility Tool (GetAtcNonCWEForAPeriod)
+
+data_actions <- c("GetAtcIntradayForAPeriod", "GetLTNForAPeriod", "GetAtcNonCWEForAPeriod")
+
+
 # Instantiate object
-jaoData <- JAOUtilTool(action = "GetAtcNonCWEForAPeriod", dateFrom = "2022-06-08 00:00", dateTo = "2022-06-10 00:00", path = "C:\\Users\\saizjo\\Downloads\\JAO\\")
+jaoData <- JAOUtilTool(action = "GetAtcNonCWEForAPeriod", dateFrom = "2021-01-01 00:00", dateTo = "2021-01-02 00:00", path = "C:/Users/saizjo/Downloads/JAO")
 
-# Call method to download data
-jaoData$download_from_datestamps()
+df <- jaoData$get_dataframe()
 
-# Call method to save data
-jaoData$save_csv()
+jaoData$save_csv(df)
