@@ -274,7 +274,6 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
 
 data_actions <- c("GetAtcIntradayForAPeriod", "GetLTNForAPeriod", "GetAtcNonCWEForAPeriod")
 
-
 # Instantiate object
 jaoData <- JAOUtilTool(action = "GetAtcNonCWEForAPeriod", dateFrom = "2021-01-01 00:00", dateTo = "2021-01-02 00:00", path = "C:/Users/saizjo/Downloads/JAO")
 
