@@ -110,18 +110,18 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       # Save the data to a csv file
       write.csv(df, filepath, row.names = FALSE)
     },
-    get_dataframe = function(datetimeFrom = NULL, datetimeTo = NULL) {
-      
+    get_dataframe = function(datetimeFrom = NULL, datetimeTo = NULL) 
+      {
       # Check if datetimes are complete
       if (is.null(datetimeFrom)) {
         datetimeFrom <- as.POSIXct(.self$dateFrom, tz = "CET")
       }
       if (is.null(datetimeTo)) {
-        datetimeTo <- as.POSIXct(.self$dateTo, tz = "CET")
+        datetimeTo <- datetimeFrom + hours(23)
       }
       
       # get content request
-      content <- .self$http_request(datetimeFrom, datetimeTo)
+      content <- http_request(datetimeFrom, datetimeTo)
       
       # read in the XML file or string
       xml <- xml2::read_xml(content)
@@ -130,7 +130,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       root_node <- xml2::xml_root(xml)
       
       # create an empty result data frame
-      df <- data.frame()
+      df_all <- data.frame(stringsAsFactors = FALSE)
       
       # loop through the child elements of the root node
       for (node in xml2::xml_children(root_node)) {
@@ -152,30 +152,30 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
           node_data[[tag]] <- value
         }
         
-        # Change all columns to characters
-        #node_data <- apply(node_data,2,as.character)
-        
         # convert the node_data list to a data frame
-        df_node <- data.frame(t(node_data))
+        df_node <- data.frame(t(node_data), stringsAsFactors = FALSE)
+        
+        # Convert the Date column to POSIXct type using ymd_hms()
+        df_node$Date <- ymd_hms(df_node$Date)
+        
+        # Combine the Date and Hour columns into a new date_time column
+        df_node$date_time <- paste0(format(df_node$Date, "%Y-%m-%d"), 
+                                    " ", sprintf("%02d", as.integer(df_node$Hour)), 
+                                    ":00:00", sep = "")
+        
+        # remove the original Date and Hour columns
+        df_node$Date <- NULL
+        df_node$Hour <- NULL
         
         # Append it to the result data frame
-        df <- rbind(df, df_node)
-
+        df_all <- rbind(df_all, df_node)
       }
       
-      # Convert the Date column to POSIXct type using ymd_hms()
-      df$Date <- ymd_hms(df$Date)
+      # convert all non-date columns to character
+      non_date_cols <- which(sapply(df_all, class) != "POSIXct")
+      df_all[,non_date_cols] <- lapply(df_all[,non_date_cols], as.character)
       
-      # Combine the Date and Hour columns into a new date_time column
-      df$date_time <- ymd_hms(paste0(format(df$Date, "%Y-%m-%d"), 
-                                     " ", sprintf("%02d", as.integer(df$Hour)), 
-                                     ":00:00", sep = ""))
-      
-      # remove the original Date and Hour columns
-      df$Date <- NULL
-      df$Hour <- NULL
-      
-      return(df)
+      return(df_all)
     },
     download_from_datestamps = function()
     {
@@ -233,12 +233,12 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
     },
     download_one_day = function() 
     {
-      # Assuming that the input dates are only one day apart,
+      # Starting from the dateTo,
       # download and save dataframe for one day.
 
       # Create the start and end datetime strings for the period
       datetimeFrom <- as.POSIXct(.self$dateFrom, tz = "CET")
-      datetimeTo <- as.POSIXct(.self$dateTo, tz = "CET")
+      datetimeTo <- datetimeFrom + hours(23)
 
       # Get the data for a day
       df <- .self$get_dataframe(datetimeFrom, datetimeTo)
@@ -267,6 +267,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
     }
   ))
 
+
 # Data items to retrieve from JAO Utility Tool
 # Intraday ATC - Available in Publication (intradayAtc) and Utility Tool (GetAtcIntradayForAPeriod)
 # Long Term Nominations - Available in Publication (ltn) and Utility Tool (GetLTNForAPeriod)
@@ -274,9 +275,16 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
 
 data_actions <- c("GetAtcIntradayForAPeriod", "GetLTNForAPeriod", "GetAtcNonCWEForAPeriod")
 
-# Instantiate object
-jaoData <- JAOUtilTool(action = "GetAtcNonCWEForAPeriod", dateFrom = "2021-01-01 00:00", dateTo = "2021-01-02 00:00", path = "C:/Users/saizjo/Downloads/JAO")
 
-df <- jaoData$get_dataframe()
+for (action in data_actions) {
+  # Instantiate object
+  jaoData <- JAOUtilTool(action = action, dateFrom = "2021-01-01", dateTo = "2021-01-02", path = "C:/Users/saizjo/Downloads/JAO")
+  jaoData$download_one_day()
+}
+
+# Instantiate object
+jaoData <- JAOUtilTool(action = "GetAtcIntradayForAPeriod", dateFrom = "2021-01-01", dateTo = "2021-01-02", path = "C:/Users/saizjo/Downloads/JAO")
+
+df_new <- jaoData$get_dataframe()
 
 jaoData$save_csv(df)
