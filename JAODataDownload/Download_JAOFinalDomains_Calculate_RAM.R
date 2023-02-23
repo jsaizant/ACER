@@ -1,16 +1,21 @@
-# Load required libraries 
-library(tidyverse)
-library(lubridate)
-library(DBI)
-library(RMySQL)
-library(httr)
-library(methods)
-library(xml2)
-
-# Data items to retrieve from JAO Utility Tool
+# JAO Utility Tool ETL Script 2023
+# Data items to retrieve from JAO Utility Tool:
 # Intraday ATC - Available in Publication (intradayAtc) and Utility Tool (GetAtcIntradayForAPeriod)
 # Long Term Nominations - Available in Publication (ltn) and Utility Tool (GetLTNForAPeriod)
 # ATC for non CWE borders - Only available in Utility Tool (GetAtcNonCWEForAPeriod)
+
+install.packages("librarian")
+
+librarian::shelf(DBI, dplyr, reshape2, RMySQL, tidyverse, lubridate, httr, methods, xml2, micropan)
+
+################################################################################
+
+# Empty data environment
+rm(list=ls())
+
+# Set working directory
+workDirectory <- getwd()
+#workDirectory <- setwd("")
 
 # Custom function to download the data from the JAO Utility Tool----------------
 #
@@ -26,10 +31,12 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
     action = "character", # https://utilitytool.jao.eu/CascUtilityWebService.asmx
     dateFrom = "character",
     dateTo = "character",
-    path = "character"
+    path = "character",
+    clear_na = "logical"
   ),
   methods = list(
-    initialize = function(action = NULL, dateFrom = NULL, dateTo = NULL, path = NULL) {
+    initialize = function(action = NULL, dateFrom = NULL, dateTo = NULL, path = NULL, clear_na = NULL) 
+      {
       if (!is.null(action)) {
         .self$action <- action
       }
@@ -44,10 +51,17 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       } else {
         .self$path <- path
       }
+      if (is.null(clear_na)) {
+        .self$clear_na <- FALSE
+      } else {
+        .self$clear_na <- clear_na
+      }
+      
       
       validObject(.self)
       .self
     },
+    
     http_request = function(datetimeFrom, datetimeTo)
     {
       # Set URL for JAO Utility Tool 
@@ -66,6 +80,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
 
       return(content)
     },
+    
     get_db_datestamps = function()
     {
       # Connect to the database to extract the dates
@@ -97,6 +112,80 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       
       return(datestamps)
     },
+    
+    transpose_dataframe = function(df)
+    {
+      df <- reshape2::melt(df, 
+                           id.vars = "date_time",
+                           na.rm = FALSE,
+                           value.name = "value",
+                           variable.name = "border"
+                           )
+    },
+    
+    find_borders = function(df)
+    {
+      eucountry_tags <- c(
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HU",
+        "IE",
+        "IT",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SK",
+        "SI",
+        "ES",
+        "SE",
+        "GB"
+      )
+      
+      # Create empty columns to store results
+      df$in_country <- NA
+      df$out_country <- NA
+      
+      # Loop over each row in the data frame
+      for (i in 1:nrow(df)) {
+        border <- as.character(df$border[i])
+        # IN country is first country tag
+        df$in_country[i] <- substr(border, 1, 2)
+        # OUT country are the rest of country tags (may be more than one)
+        # Remove first country tag
+        n <- nchar(border)
+        out_countries <- substr(border, 3, n)
+        # Search for codes
+        matches <- gregexpr(pattern = paste(eucountry_tags, collapse="|"), text = out_countries, ignore.case = FALSE, extract = TRUE)
+        # Place in OUT country column
+        df$out_country[i] <-  paste(matches[[1]], collapse = "/")
+      }
+      
+      # Return the updated data frame
+      return(df)
+    },
+    
+    clear_na_zero_values = function(df)
+    {
+      df <- dplyr::filter(df, !is.na(df$value))
+      df <- dplyr::filter(df, df$value != 0)
+      df <- dplyr::filter(df, df$value != "")
+    },
+    
     save_csv = function(df, datetimeFrom = NULL)
     {
       # Check if datetime are complete
@@ -110,6 +199,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       # Save the data to a csv file
       write.csv(df, filepath, row.names = FALSE)
     },
+    
     get_dataframe = function(datetimeFrom = NULL, datetimeTo = NULL) 
       {
       # Check if datetimes are complete
@@ -138,14 +228,8 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
         node_data <- list()
         
         for (element in xml2::xml_children(node)) {
-          # get the tag of the child element
+          # get the tag and value of the child element
           tag <- xml2::xml_name(element)
-          # modify tag to represent border direction
-          if (tag != "Hour" & tag != "Date") {
-            n <- nchar(tag)
-            tag <- paste(substr(tag, 1, 2), ">", substr(tag, 3, n), sep="")
-          }
-          # get the value of the child element
           value <- xml2::xml_text(element)
           
           # add the tag and value to the node_data list
@@ -162,6 +246,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
         df_node$date_time <- paste0(format(df_node$Date, "%Y-%m-%d"), 
                                     " ", sprintf("%02d", as.integer(df_node$Hour)), 
                                     ":00:00", sep = "")
+        df_node$date_time <- as.POSIXct(df_node$date_time, tz = "CET")
         
         # remove the original Date and Hour columns
         df_node$Date <- NULL
@@ -177,6 +262,7 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
       
       return(df_all)
     },
+    
     download_from_datestamps = function()
     {
       # Retrieve datestamps from EL database and
@@ -200,12 +286,28 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
         
         # Get the data for a day
         df <- .self$get_dataframe(datetimeFrom, datetimeTo)
+        
+        # transpose dataframe
+        df <- .self$transpose_dataframe(df)
+        
+        # Get IN/OUT countries
+        tryCatch({
+          df <- .self$find_borders(df)
+        }, error = function(e) {
+          print(paste0("Error while finding countries: ", e))
+        })
+        
+        # remove NA and zero values if specified
+        if (.self$clear_na == TRUE) {
+          df <- .self$clear_na_zero_values(df)  
+        }
 
         # Save dataframe
         .self$save_csv(df, datetimeFrom)
       }
 
     },
+    
     download_period = function()
     {
       # Assuming that the input dates are more than two days apart,
@@ -226,11 +328,27 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
 
           # Get the data for a day
           df <- .self$get_dataframe(datetimeFrom, datetimeTo)
+          
+          # transpose dataframe
+          df <- .self$transpose_dataframe(df)
+          
+          # Get IN/OUT countries
+          tryCatch({
+            df <- .self$find_borders(df)
+          }, error = function(e) {
+            print(paste0("Error while finding countries: ", e))
+          })
+          
+          # remove NA and zero values if specified
+          if (.self$clear_na == TRUE) {
+            df <- .self$clear_na_zero_values(df)  
+          }
 
           # Save dataframe
           .self$save_csv(df, datetimeFrom)
         }
     },
+    
     download_one_day = function() 
     {
       # Starting from the dateTo,
@@ -242,10 +360,26 @@ JAOUtilTool <- setRefClass("JAOUtilTool",
 
       # Get the data for a day
       df <- .self$get_dataframe(datetimeFrom, datetimeTo)
+      
+      # transpose dataframe
+      df <- .self$transpose_dataframe(df)
+      
+      # Get IN/OUT countries
+      tryCatch({
+        df <- .self$find_borders(df)
+      }, error = function(e) {
+        print(paste0("Error while finding countries: ", e))
+      })
+      
+      # remove NA and zero values if specified
+      if (.self$clear_na == TRUE) {
+        df <- .self$clear_na_zero_values(df)  
+      }
 
       # Save dataframe
       .self$save_csv(df, datetimeFrom)
     },
+    
     calculate_average_RAM = function(df)
     {
       # Group dataframe for one day into TSOs
@@ -278,13 +412,17 @@ data_actions <- c("GetAtcIntradayForAPeriod", "GetLTNForAPeriod", "GetAtcNonCWEF
 
 for (action in data_actions) {
   # Instantiate object
-  jaoData <- JAOUtilTool(action = action, dateFrom = "2021-01-01", dateTo = "2021-01-02", path = "C:/Users/saizjo/Downloads/JAO")
+  jaoData <- JAOUtilTool(action = action, dateFrom = "2021-01-01", dateTo = "2021-01-02", path = "C:/Users/saizjo/Downloads/JAO", clear_na = TRUE)
   jaoData$download_one_day()
 }
 
-# Instantiate object
-jaoData <- JAOUtilTool(action = "GetAtcIntradayForAPeriod", dateFrom = "2021-01-01", dateTo = "2021-01-02", path = "C:/Users/saizjo/Downloads/JAO")
+# Instantiate object manually step by step
+jaoData <- JAOUtilTool(action = "GetAtcIntradayForAPeriod", dateFrom = "2021-01-01", dateTo = "2021-01-02", path = "C:/Users/saizjo/Downloads/JAO", clear_na = TRUE)
 
-df_new <- jaoData$get_dataframe()
+df <- jaoData$get_dataframe()
+
+df <- jaoData$transpose_dataframe(df)
+
+df <- jaoData$find_borders(df)
 
 jaoData$save_csv(df)
