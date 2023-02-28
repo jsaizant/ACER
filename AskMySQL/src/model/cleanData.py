@@ -3,7 +3,7 @@ import numpy as np
 import xml.etree.ElementTree as et
 import re
 
-### GLOBAL CONSTANT
+### GLOBAL CONSTANTS
 
 # Set all possible SQL statements allowed in the dataset
 SQL_STATEMENTS = [
@@ -152,3 +152,12 @@ def save_jsonlines(path, json_lines):
     with open(path, "w") as f:
         f.write("\n".join(json_lines))
 
+### RUN
+
+path_posts = "C:\Users\saizjo\Downloads\AskMySQL\Stackexchange.com-Posts\Posts.xml"
+path_json = "C:\Users\saizjo\Downloads\AskMySQL\Stackexchange.com-Posts\posts.jsonl"
+
+df_raw = parse_xml(path_posts)
+df_qa = get_sql_questions_answers(df_raw)
+json = compile_dataframe_to_jsonlines(df_qa)
+save_jsonlines(path_json, json)
