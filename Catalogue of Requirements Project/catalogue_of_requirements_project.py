@@ -18,7 +18,7 @@ def import_or_install(package):
     except ImportError:
         pip.main(['install', package]) 
 
-for lib in ["dateparser", "pandas", "pdfplumber", "re"]:
+for lib in ["dateparser", "datefinder" "pandas", "pdfplumber", "re"]:
     import_or_install(lib)
 
 import pdfplumber
@@ -28,6 +28,7 @@ import numpy as np
 from dateparser.search import search_dates
 from datetime import date
 import re
+import datefinder
 
 guideline_test = True  # Do not change setting. Global boolean variable to differentiate TCM from Regulation.
 
@@ -1025,14 +1026,19 @@ def identify_requirements(text, articles_nb, stakeholders_list):
 
 def identify_decision_date(file_pdf):
     """
+    This function reads the PDF file, extracts the text from the first page and
+    attempts to search the decision date with a REGEX pattern. If not found,
+    it uses dateparser.search_date() function.
 
     Args:
         file_pdf:string
 
     Returns:
-        Decision date of TCM (Latest date in the first page of the document)
+        Decision date of TCM 
     """
-    parser_settings_default = {
+    
+    # Set parser settings for dateparser.search_dates()
+    parser_settings = {
         'DATE_ORDER': 'DMY', # Specify order of date components - Day Month Year
         'PREFER_LOCALE_DATE_ORDER': False, # Date order for english is MDY, so do not use this
         'PARSERS': ['absolute-time'], # Cover only absolute expressions, ignore relative or other expressions
@@ -1042,40 +1048,32 @@ def identify_decision_date(file_pdf):
         'REQUIRE_PARTS': ['year', 'month'], # If year AND/ OR month are missing, ignore
         'DEFAULT_LANGUAGES': ['en'] # Default language is english
         }
-    
-    parser_settings_relaxed = {
-        'DATE_ORDER': 'DMY', # Specify order of date components - Day Month Year
-        'PREFER_LOCALE_DATE_ORDER': False, # Date order for english is MDY, so do not use this
-        'PARSERS': ['relative-time', 'absolute-time'], # Cover only absolute expressions, ignore relative or other expressions
-        'PREFER_DAY_OF_MONTH': 'first', # If day is missing, set to 01
-        'PREFER_DATES_FROM': 'past', # If year/ month information is missing, infer information from the past
-        #'STRICT_PARSING': True # If year/ month/ day are missing, ignore
-        #'REQUIRE_PARTS': ['year', 'month'], # If year AND/ OR month are missing, ignore
-        'DEFAULT_LANGUAGES': ['en'] # Default language is english
-        }
 
     with pdfplumber.open(file_pdf) as pdf_text:
         # Get only first page
         page_text = pdf_text.pages[0].extract_text()
         # Get rid of some whitespace
         page_text = " ".join(page_text.split()).strip() 
-        # Search for dates
-        matches = search_dates(page_text, settings= parser_settings_default) 
-        if matches == None:
+        # Use find_dates method to search for dates in text
+        matches = list(datefinder.find_dates(text))
+
+        if matches != []:
+            # Select most recent date between 2000-01-01 and today's date 
+            # and convert it to YYYY-MM-DD format
+            dt = max(date for date in valid_dates if 
+                         (date <= datetime.today().date()) and 
+                         (date >= datetime(2000,1,1).date())).strftime('%Y-%m-%d')
+        else:
             try:
-                # Search for dates
-                matches = search_dates(page_text, settings= parser_settings_relaxed)
+                # Search for dates with search_date function in dateparser
+                matches = search_dates(page_text, settings= parser_settings)
                 # Convert to date
                 matches = [match[1].date() for match in matches] 
                 # Select most recent date between 2000-01-01 and today's date
                 dt = max(match for match in matches if match <= date.today() and match >= date(2000,1,1)) 
             except:
+                # Just give up
                 dt = "NOT FOUND"
-        else:
-            # Convert to date
-            matches = [match[1].date() for match in matches]
-            # Select most recent date between 2000-01-01 and today's date
-            dt = max(match for match in matches if match <= date.today() and match >= date(2000,1,1)) 
 
     return dt
 
