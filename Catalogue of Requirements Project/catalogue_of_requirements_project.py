@@ -929,7 +929,7 @@ def identify_geographic_scope(file_pdf):
     "SWE": "SWE",
     "South West Europe": "SWE",
     "South west europe": "SWE",
-    "UI": "UI",
+    "IU": "IU",
     "UCTE": "UCTE",
     "Ireland": "IE",
     "IE": "IE",
@@ -938,34 +938,48 @@ def identify_geographic_scope(file_pdf):
     "IFA Interconnector": "IFA INTERCONNECTOR",
     # Regions from version 1.3 onwards
     "SA CE": "SA CE",
-    "SA Nordic": "SA Nordic",
+    "SA Continental Europe": "SA CE"
+    "SA Nordic": "SA Nordic", ###
+    "LFC Area Nordic": "SA Nordic",
     "SA GB": "SA GB",
+    "GB SA": "SA GB"
     "SA IE/NI": "SA IE/NI",
+    "SA IENI": "SA IE/NI",
+    "SA IE_NI": "SA IE/NI",
+    "SA Ireland and Northern Ireland": "SA IE/NI",
     "SA Baltic": "SA Baltic",
     "LFC AREA SHB": "LFC Area SHB",
-    "LFC Area – TNG+TTG+AMP+50HZT+EN+CREOS": "LFC Area – TNG+TTG+AMP+50HZT+EN+CREOS",
-    "LFC Area Nordic": "LFC Area Nordic",
+    "SHB": "LFC Area SHB",
+    "LFC Area TNG+TTG+AMP+50HZT+EN+CREOS": "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS",
+    "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS": "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS",
+    "Danish-German-Luxembourgish LFC Block": "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS",
     "FCR Cooperation NRAs": "FCR Cooperation NRAs",
     "RR NRAs": "RR NRAs",
     "Nordic SOR": "Nordic SOR",
+    "SOR Nordic" "Nordic SOR",
     "CE SOR": "CE SOR",
+    "SOR CE": "CE SOR",
     "Baltic SOR": "Baltic SOR",
+    "SOR Baltic": "Baltic SOR"
     "SEE SOR": "SEE SOR",
+    "SOR SEE": "SEE SOR",
     }
 
     for region in regions.keys():
-        if region in file_pdf or region.upper() in file_pdf or region.replace(" ", "") in file_pdf or region.upper().replace(" ", "") in file_pdf:
+        if region in file_pdf # normal spelling
+        or region.upper() in file_pdf # uppercase spelling
+        or region.replace(" ", "") in file_pdf # normal + joint spelling
+        or region.upper().replace(" ", "") in file_pdf: # uppercase + joint spelling
             geo_scope = regions[region]
             # No break statement so it loops over every region
 
     # In case of bilateral TCM
-    # This case is ignored, the default parameter is preferred because pairs of country tags are not recognized by the MONOCLE application
 
-    # for country_A in countries:
-    #     for country_B in countries:
-    #         if country_A + "-" + country_B in file_pdf:
-    #             geo_scope = country_A + "-" + country_B
-    #             break
+    for country_A in countries:
+        for country_B in countries:
+            if country_A + "-" + country_B in file_pdf:
+                geo_scope = country_A + "-" + country_B
+                break
 
     # Exception: If file is TSO settlement, "IE" is not Ireland, instead use default geo-perimeter
 
