@@ -966,10 +966,7 @@ def identify_geographic_scope(file_pdf):
     }
 
     for region in regions.keys():
-        if region in file_pdf # normal spelling
-        or region.upper() in file_pdf # uppercase spelling
-        or region.replace(" ", "") in file_pdf # normal + joint spelling
-        or region.upper().replace(" ", "") in file_pdf: # uppercase + joint spelling
+        if region in file_pdf or region.upper() in file_pdf or region.replace(" ", "") in file_pdf or region.upper().replace(" ", "") in file_pdf: # uppercase + joint spelling
             geo_scope = regions[region]
             # No break statement so it loops over every region
 
