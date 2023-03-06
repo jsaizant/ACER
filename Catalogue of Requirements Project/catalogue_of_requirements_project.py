@@ -938,11 +938,11 @@ def identify_geographic_scope(file_pdf):
     "IFA Interconnector": "IFA INTERCONNECTOR",
     # Regions from version 1.3 onwards
     "SA CE": "SA CE",
-    "SA Continental Europe": "SA CE"
+    "SA Continental Europe": "SA CE",
     "SA Nordic": "SA Nordic", ###
     "LFC Area Nordic": "SA Nordic",
     "SA GB": "SA GB",
-    "GB SA": "SA GB"
+    "GB SA": "SA GB",
     "SA IE/NI": "SA IE/NI",
     "SA IENI": "SA IE/NI",
     "SA IE_NI": "SA IE/NI",
@@ -960,7 +960,7 @@ def identify_geographic_scope(file_pdf):
     "CE SOR": "CE SOR",
     "SOR CE": "CE SOR",
     "Baltic SOR": "Baltic SOR",
-    "SOR Baltic": "Baltic SOR"
+    "SOR Baltic": "Baltic SOR",
     "SEE SOR": "SEE SOR",
     "SOR SEE": "SEE SOR",
     }
@@ -1153,7 +1153,7 @@ def create_table_of_tcms(path_pdf, add_only_one_file=False):
                     if file_pdf.endswith(".pdf"):
 
                         full_path_pdf = path_pdf + "\\" + market_code + "\\" + methodology + "\\Approved" + "\\" + file_pdf
-                        decision_date = identify_decision_date(full_path_pdf)
+                        decision_date = identify_decision_date(file_pdf, full_path_pdf)
 
                         market_codes.append(market_code)
                         geo_perimeters.append(identify_geographic_scope(file_pdf))
