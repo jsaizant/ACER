@@ -1038,7 +1038,7 @@ def identify_requirements(text, articles_nb, stakeholders_list):
 
     return requirements, stakeholders
 
-def identify_decision_date(file_pdf):
+def identify_decision_date(file_pdf, full_path):
     """
     This function reads the PDF file, extracts the text from the first page and
     attempts to search the decision date with a REGEX pattern. If not found,
@@ -1051,6 +1051,19 @@ def identify_decision_date(file_pdf):
         Decision date of TCM 
     """
     
+    # Set file exceptions that are unreadable/ do not have date in first page
+    exceptions = {
+                "Action 5 - Regional design Baltic proposal 26102017 approved.pdf": "2017-10-26", 
+                "Action 1 - HAR annex BritNed BSA proposal approved 20161001.pdf": "2016-10-01", 
+                "Action 8 - SEE CCR CCM_amended (approved by SEE NRAs, 2021).pdf": "2019-02-01", 
+                "Action 5 - TSO settlement IE within SA CE amended proposal.pdf": "2020-03-15", # Unreadable
+                "Action 5 - Activation purposes  ACER decision annex I.pdf": "2020-07-15", 
+                "Action 3 - TSO settlement IE between SAs amended proposal.pdf": "2020-03-27" # Unreadable
+                }
+
+    # Define the regex pattern for dates in dd/mm/yyyy format
+    date_pattern = "(((0?[1-9]|[12][0-9]|3[01])(st|nd|rd|th)?\s(of\s)?)?(January|February|March|April|May|June|July|August|September|October|November|December)\s(20[0-9]{2}))"
+
     # Set parser settings for dateparser.search_dates()
     parser_settings = {
         'DATE_ORDER': 'DMY', # Specify order of date components - Day Month Year
@@ -1063,32 +1076,44 @@ def identify_decision_date(file_pdf):
         'DEFAULT_LANGUAGES': ['en'] # Default language is english
         }
 
-    with pdfplumber.open(file_pdf) as pdf_text:
-        # Get only first page
-        page_text = pdf_text.pages[0].extract_text()
-        # Get rid of some whitespace
-        page_text = " ".join(page_text.split()).strip() 
-        # Use find_dates method to search for dates in text
-        matches = list(datefinder.find_dates(text))
+    # If the file name is in the exceptions dictionary, call date directly
+    if file_pdf in exceptions.keys():
+        dt = exceptions[file_pdf]
+    else: 
+        with pdfplumber.open(full_path) as pdf_text:
+            # Get only first page
+            page_text = pdf_text.pages[0].extract_text()
+            # Get rid of some whitespace
+            page_text = " ".join(page_text.split()).strip()    
+            # Find all the matches of the pattern in the string
+            regex_matches = re.findall(date_pattern, page_text)
+            # Check if any
+            if regex_matches != [] and type(regex_matches[0]) == tuple:
+                # Convert all matches to datetime objects and YYYY-MM-DD format
+                regex_matches = [dateparser.parse(match[0], settings = parser_settings).strftime("%Y-%m-%d")
+                                for match in regex_matches]
+                # Pick latest date from list
+                dt = max(regex_matches)
 
-        if matches != []:
-            # Select most recent date between 2000-01-01 and today's date 
-            # and convert it to YYYY-MM-DD format
-            dt = max(date for date in valid_dates if 
-                         (date <= datetime.today().date()) and 
-                         (date >= datetime(2000,1,1).date())).strftime('%Y-%m-%d')
-        else:
-            try:
-                # Search for dates with search_date function in dateparser
-                matches = search_dates(page_text, settings= parser_settings)
-                # Convert to date
-                matches = [match[1].date() for match in matches] 
-                # Select most recent date between 2000-01-01 and today's date
-                dt = max(match for match in matches if match <= date.today() and match >= date(2000,1,1)) 
-            except:
-                # Just give up
-                dt = "NOT FOUND"
-
+            if regex_matches != [] and type(regex_matches[0]) != tuple:
+                # Pick latest date from list
+                dt = max(regex_matches)
+                
+            else:
+                # Use find_dates method to search for dates in text
+                finder_matches = list(datefinder.find_dates(page_text, strict=True, first = "day"))
+                # Convert datetime matches to dates
+                finder_matches = [match.date() for match in finder_matches]
+                # Select most recent date between 2000-01-01 and today's date 
+                # and convert it to YYYY-MM-DD format
+                if finder_matches != []:
+                    dt = max(match for match in finder_matches if 
+                            (match <= date.today()) and 
+                            (match >= date(2000,1,1))).strftime('%Y-%m-%d')
+                else:
+                    # just give up
+                    dt = "NOT FOUND"
+    
     return dt
 
 def create_table_of_tcms(path_pdf, add_only_one_file=False):
