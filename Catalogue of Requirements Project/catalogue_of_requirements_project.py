@@ -956,7 +956,7 @@ def identify_geographic_scope(file_pdf):
     "FCR Cooperation NRAs": "FCR Cooperation NRAs",
     "RR NRAs": "RR NRAs",
     "Nordic SOR": "Nordic SOR",
-    "SOR Nordic" "Nordic SOR",
+    "SOR Nordic": "Nordic SOR",
     "CE SOR": "CE SOR",
     "SOR CE": "CE SOR",
     "Baltic SOR": "Baltic SOR",
