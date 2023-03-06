@@ -18,16 +18,17 @@ def import_or_install(package):
     except ImportError:
         pip.main(['install', package]) 
 
-for lib in ["dateparser", "datefinder" "pandas", "pdfplumber", "re"]:
+for lib in ["dateparser", "datefinder", "pandas", "pdfplumber", "re"]:
     import_or_install(lib)
 
+import re
 import pdfplumber
 import pandas as pd
 import os, os.path
 import numpy as np
+import dateparser
 from dateparser.search import search_dates
 from datetime import date
-import re
 import datefinder
 
 guideline_test = True  # Do not change setting. Global boolean variable to differentiate TCM from Regulation.
