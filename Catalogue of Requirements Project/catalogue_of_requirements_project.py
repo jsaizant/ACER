@@ -18,22 +18,30 @@ def import_or_install(package):
     except ImportError:
         pip.main(['install', package]) 
 
-for lib in ["dateparser", "datefinder", "pandas", "pdfplumber", "re"]:
+for lib in ["dateparser", "datefinder", "pandas", "pdfplumber", "re", "tkinter"]:
     import_or_install(lib)
 
 import re
 import pdfplumber
 import pandas as pd
 import os, os.path
-import numpy as np
+import numpy as np 
 import dateparser
 from dateparser.search import search_dates
+import datetime
 from datetime import date
 import datefinder
+import tkinter as tk
+from tkinter import filedialog, Checkbutton
+import colorsys
+import dateutil.parser as dp
 
 guideline_test = True  # Do not change setting. Global boolean variable to differentiate TCM from Regulation.
 
 ### CHANGEABLE VARIABLE ###
+
+# List of all possible Market Code folders
+MARKET_CODE_LIST = ["FCA", "CACM", "EB", "SO", "Regulation"]
 
 # Folder where the regulation are stored
 FOLDER_PATH = r"\\s-int2019-sp\sites\public\Shared Documents\Electricity\Market Codes\Market Codes WEB"
@@ -58,6 +66,11 @@ STAKEHOLDERS_LIST = [
     "Regional Coordination Centres",
     "regional coordination centres",
     "RSC",
+    "Coreso",
+    "TSCNET",
+    "Baltic RSC",
+    "Nordic RSC",
+    "Selene RSC",
     "Single Allocation Platform",
     "single allocation platform",
     "Single allocation platform",
@@ -78,6 +91,8 @@ STAKEHOLDERS_LIST = [
     "Shipping agents",
 ]
 
+# color hue for input interface
+hue = 0
 
 def main(folder_path=FOLDER_PATH, stakeholders_list=STAKEHOLDERS_LIST, excel_export=True):
     """
@@ -94,24 +109,100 @@ def main(folder_path=FOLDER_PATH, stakeholders_list=STAKEHOLDERS_LIST, excel_exp
         df_requirement: catalogue of requirement (list of paragraph)
     """
 
-    df_tcm = create_table_of_tcms(folder_path)
-
+    # Get input with dialog box
+    varpath, vardict, _ = dialogbox()
+    # Retrieve path and selected folders
+    input_exportpath = varpath.get()
+    input_marketcodes = [code for code in vardict.keys() if vardict[code].get() == True]
+    # Compile table of TCMs
+    df_tcm = create_table_of_tcms(folder_path, preferred_folders = input_marketcodes)
+    # Compile table of requirements
     df_requirement = create_table_of_requirement(folder_path, df_tcm, stakeholders_list)
-
+    # Fix equations in table of requirements
     df_requirement_fix = remove_equation_symbols(df_requirement)
-
-    print(df_requirement)
+    # Export tables
     if excel_export:
 
-        df_tcm.to_excel(folder_path + "//" + "catalogue_of_tcms_auto.xlsx", index=False)
+        df_tcm.to_excel(input_exportpath + "//" + "catalogue_of_tcms_auto.xlsx", index=False)
 
-        df_requirement.to_excel(folder_path + "//" + "catalogue_of_requirement_auto.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
+        #df_requirement.to_excel(input_exportpath + "//" + "catalogue_of_requirement_auto.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
 
-        df_requirement_fix.to_excel(folder_path + "//" + "catalogue_of_requirement_auto_fix.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
+        df_requirement_fix.to_excel(input_exportpath + "//" + "catalogue_of_requirement_auto.xlsx", index=False, engine='xlsxwriter', encoding='utf-8')
 
 
-    return df_tcm, df_requirement
+    return df_tcm, df_requirement_fix
 
+
+def dialogbox():
+    """
+
+    Args:
+        None
+
+    Returns:
+        A dialog box with entry fields for:
+        - Export path
+        - Selection of input Market Code folders
+    """
+
+    # Set function to clear path field box
+    def clearandinsert(tkentry, dirname):
+        tkentry.delete(0, "end")
+        tkentry.insert(tk.INSERT, dirname)
+    
+    # Set function to change background
+    def update_color():
+        global hue
+        hue += 0.002 # change this value to adjust the speed of color change
+        if hue > 1:
+            hue = 0
+        rgb = [int(x*255) for x in colorsys.hsv_to_rgb(hue, 1, 1)]
+        hexcolor = "#{:02x}{:02x}{:02x}".format(*rgb)
+        window.config(bg=hexcolor)
+        path_frame.config(bg=hexcolor)
+        check_frame.config(bg=hexcolor)
+        #check_frame.config(bg=hexcolor)
+        window.after(10, update_color) # change this value to adjust the frequency of color update    
+
+    # Set main window
+    window = tk.Tk()
+
+
+    # Set title
+    window.title(100*"💖")
+
+    # Create a frame to hold the input widgets
+    path_frame = tk.Frame(window)
+    path_frame.pack(padx = 20, pady = 20, anchor="center")
+    # Create a frame to hold the input widgets
+    check_frame = tk.Frame(window)
+    check_frame.pack(padx = 20, pady = 20, anchor="center")
+
+    # Create the path field box
+    var_path = tk.StringVar()
+    dir_entry = tk.Entry(path_frame, textvariable = var_path, width=80)
+    dir_entry.insert(0, "Insert export folder path here")
+    dir_button = tk.Button(path_frame, text="Select directory", command=lambda: clearandinsert(dir_entry, filedialog.askdirectory()))
+
+    # Place the path widgets
+    dir_entry.grid(row=0, column=0, padx=5, pady=5)
+    dir_button.grid(row=1, column=0, padx=5, pady=5)
+
+    # Create a dictionary to store the IntVar objects for each check button
+    var_dict = {}
+    # Loop through the list of items and create a check button for each one
+    for i, item in enumerate(MARKET_CODE_LIST):
+        # Create an IntVar object and assign it to the var_dict with the item as key
+        var_dict[item] = tk.BooleanVar(value=False)
+        # Create a check button with the item as text and the IntVar object as variable
+        chk = Checkbutton(check_frame, text=item, variable=var_dict[item])
+        # Pack the check button with some padding
+        chk.pack(side="left")
+
+    update_color() # start the color update loop
+
+    return var_path, var_dict, window.mainloop()
+    
 
 def get_x_pos(word):
     return word["x0"]
@@ -951,9 +1042,10 @@ def identify_geographic_scope(file_pdf):
     "SA Baltic": "SA Baltic",
     "LFC AREA SHB": "LFC Area SHB",
     "SHB": "LFC Area SHB",
-    "LFC Area TNG+TTG+AMP+50HZT+EN+CREOS": "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS",
-    "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS": "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS",
-    "Danish-German-Luxembourgish LFC Block": "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS",
+    "TNG+TTG+AMP+50HZT+EN+CREOS": "TNG+TTG+AMP+50HZT+EN+CREOS",
+    "LFC Area TNG+TTG+AMP+50HZT+EN+CREOS": "TNG+TTG+AMP+50HZT+EN+CREOS",
+    "LFC Block TNG+TTG+AMP+50HZT+EN+CREOS": "TNG+TTG+AMP+50HZT+EN+CREOS",
+    "Danish-German-Luxembourgish LFC Block": "TNG+TTG+AMP+50HZT+EN+CREOS",
     "FCR Cooperation NRAs": "FCR Cooperation NRAs",
     "RR NRAs": "RR NRAs",
     "Nordic SOR": "Nordic SOR",
@@ -1020,6 +1112,7 @@ def identify_requirements(text, articles_nb, stakeholders_list):
                         if stakeholder in " ".join(
                                 sentence.split()[: sentence.split().index("shall") + 1]
                         ):
+                            if stakeholder in ["RCC", "RSC", "Coreso", "TSCNET", "Baltic RSC", "Nordic RSC", "Selene CC"]: stakeholder = "RSC/RCC"
                             sh = sh + stakeholder + ", "
                             rq = rq + "shall, "
 
@@ -1049,6 +1142,14 @@ def identify_decision_date(file_pdf, full_path):
         Decision date of TCM 
     """
     
+    # function to check if a string is a full date
+    def is_date(s): 
+        try: 
+            datetime.datetime.strptime(s, "%d %B %Y")
+            return True 
+        except ValueError: 
+            return False
+
     # Set file exceptions that are unreadable/ do not have date in first page
     exceptions = {
                 "Action 5 - Regional design Baltic proposal 26102017 approved.pdf": "2017-10-26", 
@@ -1056,11 +1157,13 @@ def identify_decision_date(file_pdf, full_path):
                 "Action 8 - SEE CCR CCM_amended (approved by SEE NRAs, 2021).pdf": "2019-02-01", 
                 "Action 5 - TSO settlement IE within SA CE amended proposal.pdf": "2020-03-15", # Unreadable
                 "Action 5 - Activation purposes  ACER decision annex I.pdf": "2020-07-15", 
-                "Action 3 - TSO settlement IE between SAs amended proposal.pdf": "2020-03-27" # Unreadable
+                "Action 3 - TSO settlement IE between SAs amended proposal.pdf": "2020-03-27", # Unreadable
+                "SA CE CBA 29012019": "2019-01-29",
+                "SA Nordic CBA 29012019": "2019-01-29"
                 }
 
     # Define the regex pattern for dates in dd/mm/yyyy format
-    date_pattern = "(((0?[1-9]|[12][0-9]|3[01])(st|nd|rd|th)?\s(of\s)?)?(January|February|March|April|May|June|July|August|September|October|November|December)\s(20[0-9]{2}))"
+    date_pattern = "(((0?[1-9]|[12][0-9]|3[01])(st|nd|rd|th)?\s(of\s)?)?(January|February|March|April|May|June|July|August|September|October|November|December)\s(20[0-9]{2}))|(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})"
 
     # Set parser settings for dateparser.search_dates()
     parser_settings = {
@@ -1085,15 +1188,15 @@ def identify_decision_date(file_pdf, full_path):
             page_text = " ".join(page_text.split()).strip()    
             # Find all the matches of the pattern in the string
             regex_matches = re.findall(date_pattern, page_text)
-            # Check if any
-            if regex_matches != [] and type(regex_matches[0]) == tuple:
-                # Convert all matches to datetime objects and YYYY-MM-DD format
-                regex_matches = [dateparser.parse(match[0], settings = parser_settings).strftime("%Y-%m-%d")
-                                for match in regex_matches]
-                # Pick latest date from list
-                dt = max(regex_matches)
 
-            if regex_matches != [] and type(regex_matches[0]) != tuple:
+            # Filter empty elements
+            regex_matches = [x for tupla in regex_matches for x in tupla if len(x) >= 10]
+
+            # Check and convert
+            if regex_matches != []:
+                # Convert all matches to datetime objects and YYYY-MM-DD format
+                regex_matches = [dateparser.parse(match, settings = parser_settings).strftime("%Y-%m-%d")
+                                for match in regex_matches]
                 # Pick latest date from list
                 dt = max(regex_matches)
                 
@@ -1114,7 +1217,7 @@ def identify_decision_date(file_pdf, full_path):
     
     return dt
 
-def create_table_of_tcms(path_pdf, add_only_one_file=False):
+def create_table_of_tcms(path_pdf, preferred_folders, add_only_one_file=False):
 
     # CCR indicators are no longer used to filter out files from analysis
     ccrs = [ 
@@ -1138,7 +1241,7 @@ def create_table_of_tcms(path_pdf, add_only_one_file=False):
     decision_dates = []
     file_names = []
 
-    for market_code in ["FCA", "CACM", "EB", "Regulation"]:
+    for market_code in preferred_folders:
 
         for methodology in os.listdir(path_pdf + "\\" + market_code):
 
